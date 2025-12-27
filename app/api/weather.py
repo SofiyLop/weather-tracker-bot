@@ -7,19 +7,13 @@ from datetime import datetime
 logger = logging.getLogger(__name__)
 
 class WeatherAPI:
-    """Класс для работы с OpenWeatherMap API"""
-
     def __init__(self, api_key: Optional[str] = None):
-        """Инициализация WeatherAPI"""
         self.api_key = api_key or os.getenv("OPENWEATHER_API_KEY")
-
         if not self.api_key:
             logger.warning("OPENWEATHER_API_KEY не найден.")
-
         self.base_url = "https://api.openweathermap.org/data/2.5"
 
     def get_current_weather(self, city: str) -> Optional[Dict[str, Any]]:
-        """Получить текущую погоду для города"""
         if not self.api_key:
             logger.error("API ключ не настроен")
             return None
@@ -28,8 +22,8 @@ class WeatherAPI:
             params = {
                 "q": city,
                 "appid": self.api_key,
-                "units": "metric",  # градусы Цельсия
-                "lang": "ru"  # русский язык
+                "units": "metric",
+                "lang": "ru"
             }
 
             response = requests.get(
@@ -50,7 +44,6 @@ class WeatherAPI:
             return None
 
     def get_forecast(self, city: str, days: int = 5) -> Optional[Dict[str, Any]]:
-        """Получить прогноз погоды на несколько дней"""
         if not self.api_key:
             logger.error("API ключ не настроен")
             return None
@@ -61,7 +54,7 @@ class WeatherAPI:
                 "appid": self.api_key,
                 "units": "metric",
                 "lang": "ru",
-                "cnt": days * 8  # 8 записей в день (каждые 3 часа)
+                "cnt": days * 8
             }
 
             response = requests.get(
@@ -79,7 +72,6 @@ class WeatherAPI:
             return None
 
     def _format_current_weather(self, data: Dict) -> Dict[str, Any]:
-        """Форматировать данные текущей погоды"""
         return {
             "city": data.get("name", "Неизвестно"),
             "country": data.get("sys", {}).get("country", "N/A"),
@@ -99,11 +91,10 @@ class WeatherAPI:
         }
 
     def _format_forecast(self, data: Dict) -> Dict[str, Any]:
-        """Форматировать данные прогноза"""
         forecast_by_day = {}
 
         for item in data.get("list", []):
-            date_str = item["dt_txt"].split()[0]  # Берем только дату
+            date_str = item["dt_txt"].split()[0]
             date = datetime.strptime(date_str, "%Y-%m-%d")
 
             if date_str not in forecast_by_day:
@@ -118,7 +109,6 @@ class WeatherAPI:
                     "wind_speed": item["wind"]["speed"]
                 }
             else:
-                # Обновляем мин/макс температуру
                 day_data = forecast_by_day[date_str]
                 day_data["temp_min"] = min(day_data["temp_min"], item["main"]["temp_min"])
                 day_data["temp_max"] = max(day_data["temp_max"], item["main"]["temp_max"])
@@ -131,13 +121,11 @@ class WeatherAPI:
 
     @staticmethod
     def _get_wind_direction(degrees: float) -> str:
-        """Преобразовать градусы в направление ветра"""
         directions = ["С", "СВ", "В", "ЮВ", "Ю", "ЮЗ", "З", "СЗ"]
         index = round(degrees / 45) % 8
         return directions[index]
 
     @staticmethod
     def _get_day_name(date: datetime) -> str:
-        """Получить название дня недели на русском"""
         days = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"]
         return days[date.weekday()]
